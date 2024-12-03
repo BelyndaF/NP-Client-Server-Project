@@ -84,7 +84,7 @@ void initialize_books() {
     }
 }
 
-// Update `create_account` function to exclude ZIP code
+// Create account without ZIP code
 void create_account(int client_socket, char name[]) {
     char buffer[1024] = {0};
     char username[50], password[50];
@@ -127,9 +127,74 @@ void create_account(int client_socket, char name[]) {
     send(client_socket, "Account created successfully\n", 29, 0);
 }
 
-// Remove ZIP code from other functions accordingly (e.g., `display_account_info`)
+// Handle client interactions
+void handle_client(int client_socket) {
+    char buffer[1024] = {0};
+    int option, login_success = 0;
+    char name[50] = {0};
 
-// Main function
+    while (!login_success) {
+        const char *welcome_message = "\nWelcome to the Library Database!\n Please, choose an option:\n1. Login\n2. Create Account\n5. Exit\n";
+        send(client_socket, welcome_message, strlen(welcome_message), 0);
+
+        memset(buffer, 0, sizeof(buffer));
+        read(client_socket, buffer, sizeof(buffer));
+        option = atoi(buffer);
+
+        switch (option) {
+            case 1: // Login
+                if (!login(client_socket, name)) {
+                    send(client_socket, "Login failed. Returning to the main menu.\n", 42, 0);
+                } else {
+                    login_success = 1;
+                }
+                break;
+            case 2: // Create Account
+                create_account(client_socket, name);
+                send(client_socket, "Returning to the main menu.\n", 28, 0);
+                break;
+            case 5: // Exit
+                send(client_socket, "Exiting...\n", 11, 0);
+                close(client_socket);
+                return;
+            default:
+                send(client_socket, "Invalid option. Try again.\n", 28, 0);
+                break;
+        }
+    }
+
+    while (1) {
+        const char *menu_message = "\nYou have successfully logged in!\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\n";
+        send(client_socket, menu_message, strlen(menu_message), 0);
+
+        memset(buffer, 0, sizeof(buffer));
+        read(client_socket, buffer, sizeof(buffer));
+        option = atoi(buffer);
+
+        switch (option) {
+            case 1:
+                display_account_info(client_socket, name);
+                break;
+            case 2:
+                find_books(client_socket);
+                break;
+            case 3:
+                rent_book(client_socket, get_user_id(name));
+                break;
+            case 4:
+                return_book(client_socket, get_user_id(name));
+                break;
+            case 5:
+                send(client_socket, "Exiting...\n", 11, 0);
+                close(client_socket);
+                return;
+            default:
+                send(client_socket, "Invalid option. Try again.\n", 28, 0);
+                break;
+        }
+    }
+}
+
 int main() {
     init_db();
     initialize_books();
