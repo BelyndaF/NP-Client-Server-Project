@@ -41,7 +41,7 @@ int main() {
         return -1;
     }
 
-    printf("Connected to the server. Type messages below:\n");
+    printf("You have successfully connected to the Library Server!\n");
     fflush(stdout); // Flush the stdout buffer immediately after printing
 
     while (1) {
