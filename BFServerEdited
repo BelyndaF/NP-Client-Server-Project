@@ -327,7 +327,7 @@ int login(int client_socket, char name[]) {
   }
 
   sqlite3_finalize(stmt);
-  shutdown(client_socket, SHUT_WR);
+  //////////////////////////  shutdown(client_socket, SHUT_WR); (**************REMOVING THIS FOR TESTING LOOP ACCURACY; DOES THIS NEED TO BE HERE**********)
   return 0;
 }
 
