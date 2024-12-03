@@ -321,11 +321,9 @@ int login(int client_socket, char name[]) {
       return 1;
     } else {
         send(client_socket, "Login failed: incorrect password\n", 33, 0);
-        handle_client(client_socket);
     }
   } else {
         send(client_socket, "Login failed: username not found\n", 33, 0);
-        handle_client(client_socket);
   }
 
   sqlite3_finalize(stmt);
