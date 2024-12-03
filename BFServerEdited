@@ -31,28 +31,13 @@ void init_db() {
         printf("Database connection opened successfully.\n");
     }
 
-    // Create users table
-    const char *users_table = "CREATE TABLE IF NOT EXISTS users ("
-                              "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                              "name TEXT, "
-                              "password TEXT);";
+    // Create tables
+    const char *users_table = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, password TEXT);";
+    const char *books_table = "CREATE TABLE IF NOT EXISTS books (id INTEGER PRIMARY KEY, name TEXT, author TEXT, return_date INTEGER, availability INTEGER);";
+    const char *rented_books_table = "CREATE TABLE IF NOT EXISTS rented_books (user_id INTEGER, book_id INTEGER, FOREIGN KEY (user_id) REFERENCES users(id), FOREIGN KEY (book_id) REFERENCES books(id));";
+
     sqlite3_exec(db, users_table, 0, 0, 0);
-
-    // Create books table
-    const char *books_table = "CREATE TABLE IF NOT EXISTS books ("
-                              "id INTEGER PRIMARY KEY, "
-                              "name TEXT, "
-                              "author TEXT, "
-                              "return_date INTEGER, "
-                              "availability INTEGER);";
     sqlite3_exec(db, books_table, 0, 0, 0);
-
-    // Create rented_books table
-    const char *rented_books_table = "CREATE TABLE IF NOT EXISTS rented_books ("
-                                     "user_id INTEGER, "
-                                     "book_id INTEGER, "
-                                     "FOREIGN KEY (user_id) REFERENCES users(id), "
-                                     "FOREIGN KEY (book_id) REFERENCES books(id));";
     sqlite3_exec(db, rented_books_table, 0, 0, 0);
 }
 
@@ -66,19 +51,17 @@ void initialize_books() {
     sqlite3_finalize(stmt);
 
     if (count == 0) {
-        const char *insert_sql =
-            "INSERT INTO books (id, name, author, return_date, availability) "
-            "VALUES "
-            "(1, 'C Programming', 'Dennis Ritchie', 0, 5),"
-            "(2, 'Data Structures', 'Mark Allen Weiss', 0, 3),"
-            "(3, 'Algorithms', 'Robert Sedgewick', 0, 4),"
-            "(4, 'Operating Systems', 'Andrew Tanenbaum', 0, 6),"
-            "(5, 'Computer Networks', 'James Kurose', 0, 2),"
-            "(6, 'Artificial Intelligence', 'Stuart Russell', 0, 5),"
-            "(7, 'Machine Learning', 'Tom Mitchell', 0, 3),"
-            "(8, 'Database Systems', 'Raghu Ramakrishnan', 0, 4),"
-            "(9, 'Software Engineering', 'Ian Sommerville', 0, 5),"
-            "(10, 'Computer Graphics', 'Donald Hearn', 0, 3);";
+        const char *insert_sql = "INSERT INTO books (id, name, author, return_date, availability) VALUES "
+                                 "(1, 'C Programming', 'Dennis Ritchie', 0, 5),"
+                                 "(2, 'Data Structures', 'Mark Allen Weiss', 0, 3),"
+                                 "(3, 'Algorithms', 'Robert Sedgewick', 0, 4),"
+                                 "(4, 'Operating Systems', 'Andrew Tanenbaum', 0, 6),"
+                                 "(5, 'Computer Networks', 'James Kurose', 0, 2),"
+                                 "(6, 'Artificial Intelligence', 'Stuart Russell', 0, 5),"
+                                 "(7, 'Machine Learning', 'Tom Mitchell', 0, 3),"
+                                 "(8, 'Database Systems', 'Raghu Ramakrishnan', 0, 4),"
+                                 "(9, 'Software Engineering', 'Ian Sommerville', 0, 5),"
+                                 "(10, 'Computer Graphics', 'Donald Hearn', 0, 3);";
         sqlite3_exec(db, insert_sql, 0, 0, 0);
         printf("Books added to the database.\n");
     }
@@ -126,6 +109,39 @@ void create_account(int client_socket, char name[]) {
     strncpy(name, username, 50);
     send(client_socket, "Account created successfully\n", 29, 0);
 }
+
+// Function to get user ID based on name
+int get_user_id(char name[]) {
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT id FROM users WHERE name = ? LIMIT 1;"; // SQL query to fetch user ID based on name
+    int user_id = -1; // Default value for "not found"
+
+    // Prepare the SQL statement
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) {
+        printf("Failed to prepare statement: %s\n", sqlite3_errmsg(db));
+        return user_id;
+    }
+
+    // Bind the name parameter to the SQL query
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK) {
+        printf("Failed to bind name: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return user_id;
+    }
+
+    // Execute the query and check if a result is returned
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        // Retrieve the user ID from the result set
+        user_id = sqlite3_column_int(stmt, 0); // 0 is the column index for "id"
+    } else {
+        printf("User not found.\n");
+    }
+
+    // Finalize the statement to free resources
+    sqlite3_finalize(stmt);
+    return user_id;
+}
+
 
 // Function to display user account information, including rented books
 void display_account_info(int client_socket, char name[]) {
