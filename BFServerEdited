@@ -338,7 +338,9 @@ void handle_client(int client_socket) {
     char name[50] = {0};
 
     while (!login_success) {
-        const char *welcome_message = "\nWelcome to the Library Database!\nPlease, choose an option:\n1. Login\n2. Create Account\n5. Exit\n";
+        printf("Welcome to Team D's Library Database!");
+        printf("-------------------------------------");
+        const char *welcome_message = "\nPlease, choose an option to continue:\n1. Login\n2. Create Account\n5. Exit\n";
         send(client_socket, welcome_message, strlen(welcome_message), 0);
 
         memset(buffer, 0, sizeof(buffer));
