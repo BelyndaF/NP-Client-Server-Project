@@ -558,7 +558,7 @@ void handle_client(int client_socket) {
     }
 
     while (1) {
-        const char *menu_message = "\nYou have successfully logged i!!\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\n";
+        const char *menu_message = "\nYou have successfully logged in!\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\n";
 		send(client_socket, menu_message, strlen(menu_message), 0);
 
         memset(buffer, 0, sizeof(buffer));
