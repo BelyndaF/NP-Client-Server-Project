@@ -528,7 +528,7 @@ void handle_client(int client_socket) {
 
     while (!login_success) {
         const char *welcome_message = "\nWelcome to the Library Database!\n Please, choose an option:\n1. Login\n2. Create Account\n5. Exit\n";
-		send(client_socket, welcome_message, strlen(welcome_message), 0);
+	send(client_socket, welcome_message, strlen(welcome_message), 0);
 
 
         memset(buffer, 0, sizeof(buffer));
