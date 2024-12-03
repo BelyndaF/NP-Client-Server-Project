@@ -63,7 +63,7 @@ int main() {
     write(sock, buffer, strlen(buffer));
 
     // Check for exit conditions
-    if (strcmp(buffer, "3") == 0 || strcmp(buffer, "5") == 0) {
+    if (strcmp(buffer, "5") == 0) {
         printf("Exiting...\n");
         fflush(stdout);
         break;
