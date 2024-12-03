@@ -338,8 +338,8 @@ void handle_client(int client_socket) {
     char name[50] = {0};
 
     while (!login_success) {
-        printf("Welcome to Team D's Library Database!");
-        printf("-------------------------------------");
+        printf("\nWelcome to Team D's Library Database!");
+        printf("\n-------------------------------------\n");
         const char *welcome_message = "\nPlease, choose an option to continue:\n1. Login\n2. Create Account\n5. Exit\n";
         send(client_socket, welcome_message, strlen(welcome_message), 0);
 
@@ -372,6 +372,8 @@ void handle_client(int client_socket) {
     }
 
     while (1) {
+        printf("\nTeam D's Library Main Menu:");
+        printf("\n---------------------------\n");
         const char *menu_message = "\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\n";
         send(client_socket, menu_message, strlen(menu_message), 0);
 
