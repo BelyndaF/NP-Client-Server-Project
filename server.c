@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #define PORT 8080
@@ -45,14 +46,15 @@ void init_db() {
                       "id INTEGER PRIMARY KEY, "
                       "name TEXT, "
                       "author TEXT, "
-                      "return_date INTEGER, "
+                      "return_date INTEGER, " // return date as Unix timestamp
                       "availability INTEGER);";
   sqlite3_exec(db, books_table, 0, 0, 0);
 
-  // Create rented_books table to track rented books by user
+  // Create rented_books table with rental_period
   char *rented_books_table = "CREATE TABLE IF NOT EXISTS rented_books ("
                              "user_id INTEGER, "
                              "book_id INTEGER, "
+                             "rental_period INTEGER, " // number of days rented
                              "FOREIGN KEY (user_id) REFERENCES users(id), "
                              "FOREIGN KEY (book_id) REFERENCES books(id));";
   sqlite3_exec(db, rented_books_table, 0, 0, 0);
@@ -249,15 +251,17 @@ int get_user_id(char name[]) {
 
 // Function to display user account information, including rented books
 void display_account_info(int client_socket, char name[]) {
+  char buffer[1024] = {0};
+  sqlite3 *db;
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-    exit(0);
-  } else {
-    printf("Database opened successfully. Display Info\n");
+    // Error opening the database
+    const char *err_msg = sqlite3_errmsg(db);
+    snprintf(buffer, sizeof(buffer), "Can't open database: %s\n", err_msg);
+    send(client_socket, buffer, strlen(buffer), 0);
+    return;
   }
 
-  char buffer[1024] = {0};
   sqlite3_stmt *stmt;
 
   // Query for user information based on name
@@ -265,14 +269,25 @@ void display_account_info(int client_socket, char name[]) {
            "SELECT id, name, zip FROM users WHERE name = '%s';", name);
   rc = sqlite3_prepare_v2(db, buffer, -1, &stmt, 0);
 
-  if (rc == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW) {
+  if (rc != SQLITE_OK) {
+    // Handle SQL preparation failure
+    const char *err_msg = sqlite3_errmsg(db);
+    snprintf(buffer, sizeof(buffer), "Error preparing user query: %s\n",
+             err_msg);
+    send(client_socket, buffer, strlen(buffer), 0);
+    return;
+  }
+
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
     int user_id = sqlite3_column_int(stmt, 0);
     const char *username = (const char *)sqlite3_column_text(stmt, 1);
     int zip = sqlite3_column_int(stmt, 2);
 
+    // Send user info to client
     snprintf(buffer, sizeof(buffer),
-             "User Account Information:\nName: %s\nZIP: %d", username, zip);
+             "User Account Information:\nName: %s\nZIP: %d\n", username, zip);
     send(client_socket, buffer, strlen(buffer), 0);
+
     sqlite3_finalize(stmt);
 
     // Query for rented books using user_id
@@ -282,30 +297,52 @@ void display_account_info(int client_socket, char name[]) {
              user_id);
     rc = sqlite3_prepare_v2(db, buffer, -1, &stmt, 0);
 
-    if (rc == SQLITE_OK) {
-      if (sqlite3_step(stmt) == SQLITE_ROW) {
-        send(client_socket, "Rented Books:\n", 14, 0);
-        do {
-          const char *book_name = (const char *)sqlite3_column_text(stmt, 0);
-          const char *author = (const char *)sqlite3_column_text(stmt, 1);
-          int return_date = sqlite3_column_int(stmt, 2);
+    if (rc != SQLITE_OK) {
+      // Handle SQL preparation failure for rented books query
+      const char *err_msg = sqlite3_errmsg(db);
+      snprintf(buffer, sizeof(buffer),
+               "Error preparing rented books query: %s\n", err_msg);
+      send(client_socket, buffer, strlen(buffer), 0);
+      sqlite3_finalize(stmt);
+      return;
+    }
 
-          snprintf(buffer, sizeof(buffer),
-                   "Book: %s, Author: %s, Return Date: %d\n", book_name, author,
-                   return_date);
-          send(client_socket, buffer, strlen(buffer), 0);
-        } while (sqlite3_step(stmt) == SQLITE_ROW);
-      } else {
-        send(client_socket, "No rented books.\n", 17, 0);
-      }
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      // If rented books are found
+      send(client_socket, "Rented Books:\n", 14, 0);
+      do {
+        const char *book_name = (const char *)sqlite3_column_text(stmt, 0);
+        const char *author = (const char *)sqlite3_column_text(stmt, 1);
+        const char *return_date = (const char *)sqlite3_column_text(stmt, 2);
+
+        // Calculate renting time in days
+        time_t now = time(NULL);
+        struct tm return_tm = {0};
+        sscanf(return_date, "%d-%d-%d", &return_tm.tm_year, &return_tm.tm_mon,
+               &return_tm.tm_mday);
+        return_tm.tm_year -= 1900;
+        return_tm.tm_mon -= 1;
+        time_t return_time = mktime(&return_tm);
+
+        int renting_time = difftime(return_time, now) / (60 * 60 * 24);
+
+        // Assuming return_date is the number of days from the rental date
+        snprintf(buffer, sizeof(buffer),
+                 "Book: %s, Author: %s, Renting Time: %d days\n", book_name,
+                 author, renting_time);
+        send(client_socket, buffer, strlen(buffer), 0);
+      } while (sqlite3_step(stmt) == SQLITE_ROW);
     } else {
-      send(client_socket, "Error retrieving rented books.\n", 31, 0);
+      // No rented books found
+      send(client_socket, "No rented books.\n", 17, 0);
     }
   } else {
+    // Error retrieving account information
     send(client_socket, "Error retrieving account information.\n", 38, 0);
   }
 
   sqlite3_finalize(stmt);
+  sqlite3_close(db); // Close the database connection
 }
 
 // Function to display all books in the bookstore
@@ -355,111 +392,145 @@ void find_books(int client_socket) {
   sqlite3_finalize(stmt);
 }
 
-// Function to rent a book
+// Function to rent a book using user_id
 void rent_book(int client_socket, int user_id) {
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-    exit(0);
-  } else {
-    printf("Database opened successfully. Rent Book\n");
+    return;
   }
-  char buffer[1024] = {0};
-  int book_id;
+
   sqlite3_stmt *stmt;
+  char buffer[1024] = {0};
+  int book_id, rental_period = 20; // Rental period (e.g., 20 days)
 
-  // Ask client for the book ID to rent
-  send(client_socket, "Enter the ID of the book you want to rent: ", 42, 0);
-  // Receive client choice
-  memset(buffer, 0, sizeof(buffer));
-  read(client_socket, buffer, sizeof(buffer));
-  book_id = atoi(buffer);
-
-  // Check if the book exists and is available
+  // Send available books to the user
   snprintf(buffer, sizeof(buffer),
-           "SELECT availability FROM books WHERE id = %d;", book_id);
-  if (sqlite3_prepare_v2(db, buffer, -1, &stmt, 0) == SQLITE_OK) {
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-      int availability = sqlite3_column_int(stmt, 0);
+           "Available Books:\nID | Name | Author | Availability\n");
+  send(client_socket, buffer, strlen(buffer), 0);
 
-      if (availability > 0) {
-        // Book is available; proceed with renting
+  const char *sql = "SELECT id, name, author, availability FROM books WHERE "
+                    "availability > 0;";
+  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+  if (rc == SQLITE_OK) {
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      int id = sqlite3_column_int(stmt, 0);
+      const char *name = (const char *)sqlite3_column_text(stmt, 1);
+      const char *author = (const char *)sqlite3_column_text(stmt, 2);
+      int availability = sqlite3_column_int(stmt, 3);
 
-        // Decrease the book's availability count
-        snprintf(
-            buffer, sizeof(buffer),
-            "UPDATE books SET availability = availability - 1 WHERE id = %d;",
-            book_id);
-        sqlite3_exec(db, buffer, 0, 0, 0);
-
-        // Add entry to rented_books
-        snprintf(buffer, sizeof(buffer),
-                 "INSERT INTO rented_books (user_id, book_id) VALUES (%d, %d);",
-                 user_id, book_id);
-        sqlite3_exec(db, buffer, 0, 0, 0);
-
-        send(client_socket, "Book rented successfully.\n", 26, 0);
-      } else {
-        // Book is not available
-        send(client_socket, "Book is not available for rent.\n", 32, 0);
-      }
-    } else {
-      send(client_socket, "Book ID not found.\n", 19, 0);
+      snprintf(buffer, sizeof(buffer), "%d | %s | %s | %d\n", id, name, author,
+               availability);
+      send(client_socket, buffer, strlen(buffer), 0);
     }
-  } else {
-    send(client_socket, "Error checking book availability.\n", 35, 0);
   }
   sqlite3_finalize(stmt);
+
+  // Ask user to select a book to rent
+  send(client_socket, "Enter the book ID you want to rent: ", 35, 0);
+  int bytes_read = read(client_socket, buffer, sizeof(buffer));
+  buffer[bytes_read] = '\0'; // Null-terminate the string
+  book_id = atoi(buffer);
+
+  // Get current time and calculate return date
+  time_t current_time;
+  struct tm *tm_info;
+  time(&current_time);
+  tm_info = localtime(&current_time);
+  tm_info->tm_mday += rental_period; // Add rental period (20 days)
+  mktime(tm_info);                   // Normalize the structure
+
+  char return_date_str[20];
+  strftime(return_date_str, sizeof(return_date_str), "%Y-%m-%d", tm_info);
+
+  // Update books table with return date and decrease availability
+  snprintf(buffer, sizeof(buffer),
+           "UPDATE books SET return_date = '%s', availability = availability - "
+           "1 WHERE id = %d;",
+           return_date_str, book_id);
+  rc = sqlite3_exec(db, buffer, 0, 0, 0);
+  printf("Debug: Executing SQL update: %s\n", buffer);
+
+  // Insert into rented_books table with rental period
+  snprintf(buffer, sizeof(buffer),
+           "INSERT INTO rented_books (user_id, book_id, rental_period) VALUES "
+           "(%d, %d, %d);",
+           user_id, book_id, rental_period);
+  rc = sqlite3_exec(db, buffer, 0, 0, 0);
+  printf("Debug: Executing SQL insert: %s\n", buffer);
+
+  if (rc != SQLITE_OK) {
+    send(client_socket, "Error renting book.\n", 20, 0);
+    const char *err_msg = sqlite3_errmsg(db);
+    printf("Debug: Error message: %s\n", err_msg);
+  } else {
+    send(client_socket, "Book rented successfully!\n", 25, 0);
+  }
 }
 
-// Function to return a book
+// Function to return a book using user_id
 void return_book(int client_socket, int user_id) {
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-    exit(0);
-  } else {
-    printf("Database opened successfully. Return Book\n");
+    return;
   }
 
+  sqlite3_stmt *stmt;
   char buffer[1024] = {0};
   int book_id;
-  sqlite3_stmt *stmt;
 
-  // Ask client for the book ID to return
-  send(client_socket, "Enter the ID of the book you want to return: ", 44, 0);
-  read(client_socket, buffer, sizeof(buffer));
-  book_id = atoi(buffer);
-
-  // Check if the user has this book rented
+  // Display rented books for the user
   snprintf(buffer, sizeof(buffer),
-           "SELECT * FROM rented_books WHERE user_id = %d AND book_id = %d;",
-           user_id, book_id);
-  if (sqlite3_prepare_v2(db, buffer, -1, &stmt, 0) == SQLITE_OK) {
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-      // User has the book rented; proceed with return
+           "Your Rented Books:\nID | Name | Author | Rental Period (Days) | "
+           "Return Date\n");
+  send(client_socket, buffer, strlen(buffer), 0);
 
-      // Remove entry from rented_books
-      snprintf(buffer, sizeof(buffer),
-               "DELETE FROM rented_books WHERE user_id = %d AND book_id = %d;",
-               user_id, book_id);
-      sqlite3_exec(db, buffer, 0, 0, 0);
+  const char *sql =
+      "SELECT b.id, b.name, b.author, rb.rental_period, b.return_date "
+      "FROM rented_books rb "
+      "JOIN books b ON rb.book_id = b.id "
+      "WHERE rb.user_id = ?;";
 
-      // Increase the book's availability count
-      snprintf(
-          buffer, sizeof(buffer),
-          "UPDATE books SET availability = availability + 1 WHERE id = %d;",
-          book_id);
-      sqlite3_exec(db, buffer, 0, 0, 0);
+  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+  if (rc == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, user_id);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      int id = sqlite3_column_int(stmt, 0);
+      const char *name = (const char *)sqlite3_column_text(stmt, 1);
+      const char *author = (const char *)sqlite3_column_text(stmt, 2);
+      int rental_period = sqlite3_column_int(stmt, 3);
+      const char *return_date = (const char *)sqlite3_column_text(stmt, 4);
 
-      send(client_socket, "Book returned successfully.\n", 28, 0);
-    } else {
-      send(client_socket, "You have not rented this book.\n", 31, 0);
+      snprintf(buffer, sizeof(buffer), "%d | %s | %s | %d | %s\n", id, name,
+               author, rental_period, return_date);
+      send(client_socket, buffer, strlen(buffer), 0);
     }
-  } else {
-    send(client_socket, "Error checking rental status.\n", 30, 0);
   }
   sqlite3_finalize(stmt);
+
+  // Ask the user to select the book they want to return
+  send(client_socket, "Enter the book ID you want to return: ", 35, 0);
+  int bytes_read = read(client_socket, buffer, sizeof(buffer));
+  sscanf(buffer, "%d", &book_id);
+
+  // Update availability in books table
+  snprintf(buffer, sizeof(buffer),
+           "UPDATE books SET availability = availability + 1 WHERE id = %d;",
+           book_id);
+  rc = sqlite3_exec(db, buffer, 0, 0, 0);
+
+  // Remove the book from rented_books table
+  snprintf(buffer, sizeof(buffer),
+           "DELETE FROM rented_books WHERE user_id = %d AND book_id = %d;",
+           user_id, book_id);
+  rc = sqlite3_exec(db, buffer, 0, 0, 0);
+
+  if (rc != SQLITE_OK) {
+    send(client_socket, "Error returning book.\n", 21, 0);
+  } else {
+    send(client_socket, "Book returned successfully!\n", 27, 0);
+  }
 }
 
 // Function to log in
@@ -517,7 +588,6 @@ int login(int client_socket, char name[]) {
   }
 
   sqlite3_finalize(stmt);
-  shutdown(client_socket, SHUT_WR);
   return 0;
 }
 
@@ -529,7 +599,7 @@ void handle_client(int client_socket) {
   while (!login_success) {
     // Send options menu to client
     send(client_socket,
-         "Choose an option:\n1. Login\n2. Create Account\n5. Exit\n", 58, 0);
+         "Choose an option:\n1. Login\n2. Create Account\n99. Exit\n", 57, 0);
 
     // Receive client choice
     memset(buffer, 0, sizeof(buffer));
@@ -545,7 +615,7 @@ void handle_client(int client_socket) {
       create_account(client_socket, name);
       close_db();
       break;
-    case 5: // Exit
+    case 99: // Exit
       send(client_socket, "Exiting...\n", 11, 0);
       close(client_socket);
       return; // Exit the function, closing connection with client
@@ -560,8 +630,8 @@ void handle_client(int client_socket) {
   while (!exit) {
     send(client_socket,
          "Welcome to the online library!\n1. Account\n2. Find Book\n3. Rent "
-         "Book\n4. Return Book\n5. Exit\nChoose an option: ",
-         115, 0);
+         "Book\n4. Return Book\n99. Exit\nChoose an option: ",
+         116, 0);
 
     memset(buffer, 0, sizeof(buffer));
     read(client_socket, buffer, sizeof(buffer));
@@ -586,7 +656,7 @@ void handle_client(int client_socket) {
       return_book(client_socket, user_id);
       close_db();
       break;
-    case 5: // Exit
+    case 99: // Exit
       send(client_socket, "Exiting...\n", 11, 0);
       close(client_socket);
       return;
