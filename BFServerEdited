@@ -195,6 +195,7 @@ void find_books(int client_socket) {
     if (rc == SQLITE_OK) {
         send(client_socket, "Available Books:\n", 17, 0);
         while (sqlite3_step(stmt) == SQLITE_ROW) {
+            memset(buffer, 0, sizeof(buffer)); /************* TEST: To clear buffer before each book title is printed *****************/
             int id = sqlite3_column_int(stmt, 0);
             const char *name = (const char *)sqlite3_column_text(stmt, 1);
             const char *author = (const char *)sqlite3_column_text(stmt, 2);
@@ -205,6 +206,7 @@ void find_books(int client_socket) {
                      id, name, author, return_date, availability);
             send(client_socket, buffer, strlen(buffer), 0);
         }
+        send(client_socket, "\nReturning to Main Menu...\n", 27, 0); 
     } else {
         send(client_socket, "Error retrieving books.\n", 24, 0);
     }
