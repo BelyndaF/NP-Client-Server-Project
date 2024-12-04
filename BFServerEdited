@@ -206,10 +206,10 @@ void find_books(int client_socket) {
                      id, name, author, return_date, availability);
             send(client_socket, buffer, strlen(buffer), 0);
         }
-        send(client_socket, "\nReturning to Main Menu...\n", 27, 0); 
     } else {
         send(client_socket, "Error retrieving books.\n", 24, 0);
     }
+    send(client_socket, "\nReturning to Main Menu...\n", 27, 0);
     sqlite3_finalize(stmt);
 }
 
@@ -389,9 +389,7 @@ void handle_client(int client_socket) {
     while (1) {
         memset(buffer, 0, sizeof(buffer));
         send(client_socket, "\nTeam D's Library Main Menu:", 28, 0);
-        memset(buffer, 0, sizeof(buffer));
         send(client_socket, "\n---------------------------\n", 29, 0);
-        memset(buffer, 0, sizeof(buffer));
         const char *menu_message = "\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\n";
         send(client_socket, menu_message, strlen(menu_message), 0);
 
@@ -402,15 +400,19 @@ void handle_client(int client_socket) {
         switch (option) {
             case 1:
                 display_account_info(client_socket, name);
+                send(client_socket, "\nReturning to Main Menu...\n", 27, 0);
                 break;
             case 2:
                 find_books(client_socket);
+                send(client_socket, "\nReturning to Main Menu...\n", 27, 0);
                 break;
             case 3:
-                rent_book(client_socket, get_user_id(name)); // Return to menu even on failure
+                rent_book(client_socket, get_user_id(name));
+                send(client_socket, "\nReturning to Main Menu...\n", 27, 0);
                 break;
             case 4:
-                return_book(client_socket, get_user_id(name)); // Return to menu even on failure
+                return_book(client_socket, get_user_id(name)); 
+                send(client_socket, "\nReturning to Main Menu...\n", 27, 0);
                 break;
             case 5:
                 send(client_socket, "Exiting...\n", 11, 0);
