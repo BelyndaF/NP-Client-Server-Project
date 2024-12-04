@@ -403,8 +403,8 @@ void handle_client(int client_socket) {
                 break;
             case 2:
                 find_books(client_socket);
-                send(client_socket, "\nReturning to Main Menu...\n", 27, 0);
                 memset(buffer, 0, sizeof(buffer));
+                send(client_socket, "\nReturning to Main Menu...\n", 27, 0);
                 break;
             case 3:
                 rent_book(client_socket, get_user_id(name));
