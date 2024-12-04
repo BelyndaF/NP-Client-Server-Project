@@ -346,8 +346,10 @@ void handle_client(int client_socket) {
     int option, login_success = 0;
     char name[50] = {0};
 
+    send(client_socket, "\nWelcome to Team D's Library Database!", 38, 0);
+    send(client_socket, "\n-------------------------------------\n", 39, 0);
+
     while (!login_success) {
-        send(client_socket, "\nWelcome to Team D's Library Database!", 38, 0);
         send(client_socket, "\n-------------------------------------\n", 39, 0);
         const char *welcome_message = "\nPlease, choose an option to continue:\n1. Login\n2. Create Account\n5. Exit\n";
         send(client_socket, welcome_message, strlen(welcome_message), 0);
