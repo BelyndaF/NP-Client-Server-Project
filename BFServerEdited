@@ -389,7 +389,9 @@ void handle_client(int client_socket) {
     while (1) {
         memset(buffer, 0, sizeof(buffer));
         send(client_socket, "\nTeam D's Library Main Menu:", 28, 0);
+        memset(buffer, 0, sizeof(buffer));
         send(client_socket, "\n---------------------------\n", 29, 0);
+        memset(buffer, 0, sizeof(buffer));
         const char *menu_message = "\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\n";
         send(client_socket, menu_message, strlen(menu_message), 0);
 
