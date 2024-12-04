@@ -387,38 +387,38 @@ void handle_client(int client_socket) {
     }
 
     while (1) {
-    send(client_socket, "\nTeam D's Library Main Menu:", 28, 0);
-    send(client_socket, "\n---------------------------\n", 29, 0);
-    const char *menu_message = "\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\n";
-    send(client_socket, menu_message, strlen(menu_message), 0);
+        memset(buffer, 0, sizeof(buffer));
+        send(client_socket, "\nTeam D's Library Main Menu:", 28, 0);
+        send(client_socket, "\n---------------------------\n", 29, 0);
+        const char *menu_message = "\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\n";
+        send(client_socket, menu_message, strlen(menu_message), 0);
 
-    memset(buffer, 0, sizeof(buffer));
-    read(client_socket, buffer, sizeof(buffer));
-    option = atoi(buffer); // Convert the input to an integer
+        memset(buffer, 0, sizeof(buffer));
+        read(client_socket, buffer, sizeof(buffer));
+        option = atoi(buffer); // Convert the input to an integer
 
-    switch (option) {
-        case 1:
-            display_account_info(client_socket, name);
-            break;
-        case 2:
-            find_books(client_socket);
-            break;
-        case 3:
-            rent_book(client_socket, get_user_id(name)); // Return to menu even on failure
-            break;
-        case 4:
-            return_book(client_socket, get_user_id(name)); // Return to menu even on failure
-            break;
-        case 5:
-            send(client_socket, "Exiting...\n", 11, 0);
-            close(client_socket);
-            return;
-        default:
-            send(client_socket, "Invalid option. Please try again.\n", 34, 0);
-            break;
+        switch (option) {
+            case 1:
+                display_account_info(client_socket, name);
+                break;
+            case 2:
+                find_books(client_socket);
+                break;
+            case 3:
+                rent_book(client_socket, get_user_id(name)); // Return to menu even on failure
+                break;
+            case 4:
+                return_book(client_socket, get_user_id(name)); // Return to menu even on failure
+                break;
+            case 5:
+                send(client_socket, "Exiting...\n", 11, 0);
+                close(client_socket);
+                return;
+            default:
+                send(client_socket, "Invalid option. Please try again.\n", 34, 0);
+                break;
+        }
     }
-}
-
 }
 
 int main() {
