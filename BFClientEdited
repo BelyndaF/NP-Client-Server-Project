@@ -57,6 +57,11 @@ int main() {
     printf("%s", buffer); // Display the server's prompt
     fflush(stdout);
 
+    /////////////////////////////////////////////////////// Check for end-of-books marker and skip further reading if found
+    if (strstr(buffer, "END_OF_BOOKS") != NULL) {
+        continue; // Go back to receiving next menu prompt
+    }
+
     // Get user input
     fgets(buffer, sizeof(buffer), stdin);
     buffer[strcspn(buffer, "\n")] = '\0'; // Remove newline character
@@ -69,27 +74,6 @@ int main() {
         printf("Thank you, Have a great day! Now exiting the online database...\n");
         fflush(stdout);
         break;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////// TESTING FOR FULL PRINT OF BOOKS MENU 
-    if (strcmp(buffer, "2") == 0) {
-        // Begin reading the book list from the server
-        while (1) {
-            memset(buffer, 0, sizeof(buffer)); // Clear buffer before reading
-            int bytes_read = read(sock, buffer, sizeof(buffer));
-
-            if (bytes_read == 0) { 
-                // Server has closed the write side; transmission is complete
-                printf("Finished receiving book list.\n");
-                break;
-            } else if (bytes_read < 0) {
-                printf("Error reading from server.\n");
-                break;
-            }
-
-            printf("%s", buffer); // Display received book data
-            fflush(stdout);
-        }
     }
 
     // Toggle menu state based on server messages
