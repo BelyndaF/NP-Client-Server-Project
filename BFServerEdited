@@ -338,8 +338,8 @@ void handle_client(int client_socket) {
     char name[50] = {0};
 
     while (!login_success) {
-        printf("\nWelcome to Team D's Library Database!");
-        printf("\n-------------------------------------\n");
+        send(client_socket, "\nWelcome to Team D's Library Database!", 38, 0);
+        send(client_socket, "\n-------------------------------------\n"), 39, 0);
         const char *welcome_message = "\nPlease, choose an option to continue:\n1. Login\n2. Create Account\n5. Exit\n";
         send(client_socket, welcome_message, strlen(welcome_message), 0);
 
@@ -352,8 +352,8 @@ void handle_client(int client_socket) {
                 if (!login(client_socket, name)) {
                     send(client_socket, "Login failed. Returning to the main menu.\n", 42, 0);
                 } else {
-                    printf("You have successfully logged in!\n");
-                    printf("--------------------------------\n");
+                    send(client_socket, "You have successfully logged in!\n", 33, 0);
+                    send(client_socket, "--------------------------------\n", 33, 0);
                     login_success = 1;
                 }
                 break;
@@ -372,8 +372,8 @@ void handle_client(int client_socket) {
     }
 
     while (1) {
-        printf("\nTeam D's Library Main Menu:");
-        printf("\n---------------------------\n");
+        send(client_socket, "\nTeam D's Library Main Menu:", 28,0);
+        send(client_socket, "\n---------------------------\n", 29, 0);
         const char *menu_message = "\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\n";
         send(client_socket, menu_message, strlen(menu_message), 0);
 
