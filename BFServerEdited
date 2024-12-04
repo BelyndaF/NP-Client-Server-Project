@@ -206,7 +206,7 @@ void find_books(int client_socket) {
                      id, name, author, return_date, availability);
             send(client_socket, buffer, strlen(buffer), 0);
         }
-        shutdown(client_socket, SHUT_WR); ///////////////////////////////////////////// TESTING TO PRINT BOOKS
+        send(client_socket, "END_OF_BOOKS\n", 13, 0); ///////////////////////////////////////////// TESTING TO PRINT BOOKS
     } else {
         send(client_socket, "Error retrieving books.\n", 24, 0);
     }
