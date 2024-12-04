@@ -353,6 +353,7 @@ void handle_client(int client_socket) {
     send(client_socket, "\n-------------------------------------\n", 39, 0);
 
     while (!login_success) {
+        memset(buffer, 0, sizeof(buffer)); // Clears buffer before sending the menu
         send(client_socket, "\n-------------------------------------\n", 39, 0);
         const char *welcome_message = "\nPlease, choose an option to continue:\n1. Login\n2. Create Account\n3. Exit\n";
         send(client_socket, welcome_message, strlen(welcome_message), 0);
