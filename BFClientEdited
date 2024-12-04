@@ -47,8 +47,7 @@ int main() {
     fflush(stdout); // Flush the stdout buffer immediately after printing
 
     while (1) {
-    // Receive prompt from server
-    memset(buffer, 0, sizeof(buffer));
+    memset(buffer, 0, sizeof(buffer)); // Clear buffer before reading
     if (read(sock, buffer, sizeof(buffer)) <= 0) {
         printf("Disconnected from server.\n");
         break;
@@ -57,7 +56,7 @@ int main() {
     printf("%s", buffer); // Display the server's prompt
     fflush(stdout);
 
-    /////////////////////////////////////////////////////// Check for end-of-books marker and skip further reading if found
+    // Check for end-of-books marker and skip further reading if found
     if (strstr(buffer, "END_OF_BOOKS") != NULL) {
         continue; // Go back to receiving next menu prompt
     }
