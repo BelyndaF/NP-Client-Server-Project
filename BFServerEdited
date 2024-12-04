@@ -155,7 +155,8 @@ void display_account_info(int client_socket, char name[]) {
         int user_id = sqlite3_column_int(stmt, 0);
         const char *username = (const char *)sqlite3_column_text(stmt, 1);
 
-        snprintf(buffer, sizeof(buffer), "User Account Information:\nName: %s", username);
+        snprintf(buffer, sizeof(buffer), "User Account Information:\nName: %s\n\n", username);
+        send(client_socket, "-------------------------\n", 26, 0);
         send(client_socket, buffer, strlen(buffer), 0);
         sqlite3_finalize(stmt);
 
