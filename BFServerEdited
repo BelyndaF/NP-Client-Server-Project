@@ -413,6 +413,7 @@ void handle_client(int client_socket) {
     }
 }
 
+}
 
 int main() {
     init_db();
