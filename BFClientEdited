@@ -64,16 +64,9 @@ int main() {
     // Send input to the server
     write(sock, buffer, strlen(buffer));
 
-    // Check for exit conditions
-    if (strcmp(buffer, "5") == 0) {
-        printf("Thank you, Have a great day! Now exiting the online database...\n");
-        fflush(stdout);
-        break;
-    }
-
     // Check for exit conditions if in main menu
-    if (in_main_menu && strcmp(buffer, "5") == 0) {
-        printf("Exiting...\n");
+    if (in_main_menu && strcmp(buffer, "3") == 0) {
+        printf("Thank you, Have a great day! Now exiting the online database...\n");
         fflush(stdout);
         break;
     }
