@@ -209,7 +209,6 @@ void find_books(int client_socket) {
     } else {
         send(client_socket, "Error retrieving books.\n", 24, 0);
     }
-    send(client_socket, "\nReturning to Main Menu...\n", 27, 0);
     sqlite3_finalize(stmt);
 }
 
@@ -405,6 +404,7 @@ void handle_client(int client_socket) {
             case 2:
                 find_books(client_socket);
                 send(client_socket, "\nReturning to Main Menu...\n", 27, 0);
+                memset(buffer, 0, sizeof(buffer));
                 break;
             case 3:
                 rent_book(client_socket, get_user_id(name));
