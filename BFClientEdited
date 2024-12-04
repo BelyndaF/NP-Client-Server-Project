@@ -45,15 +45,33 @@ int main() {
     printf("------------------------------------------------------\n");
     fflush(stdout); // Flush the stdout buffer immediately after printing
 
-    while (1) {
-    // Receive prompt from server
-    memset(buffer, 0, sizeof(buffer));
-    if (read(sock, buffer, sizeof(buffer)) <= 0) {
+   while (1) {
+    memset(buffer, 0, sizeof(buffer)); // Clear the buffer for each new message
+
+    // Loop to handle partial reads
+    ssize_t total_bytes = 0;
+    ssize_t bytes_read;
+    while ((bytes_read = read(sock, buffer + total_bytes, sizeof(buffer) - total_bytes - 1)) > 0) {
+        total_bytes += bytes_read;
+
+        // Check for a complete message (assuming '\n' is the delimiter)
+        if (buffer[total_bytes - 1] == '\n') {
+            break;
+        }
+
+        // Prevent buffer overflow
+        if (total_bytes >= sizeof(buffer) - 1) {
+            break;
+        }
+    }
+
+    if (bytes_read <= 0) {
         printf("Disconnected from server.\n");
         break;
     }
 
-    printf("%s", buffer); // Display the server's prompt
+    buffer[total_bytes] = '\0'; // Null-terminate the received string
+    printf("%s", buffer);      // Print the received message
     fflush(stdout);
 
     // Get user input
@@ -70,6 +88,7 @@ int main() {
         break;
     }
 }
+
 
     close(sock);
     return 0;
