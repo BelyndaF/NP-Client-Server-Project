@@ -57,6 +57,11 @@ int main() {
     printf("%s", buffer); // Display the server's prompt
     fflush(stdout);
 
+    //////////////////// TEST TO CHECK FUNCTIONING 
+    if(strstr(buffer, "END_OF_BOOKS") != NULL) {
+        continue;
+    }
+
     // Get user input
     fgets(buffer, sizeof(buffer), stdin);
     buffer[strcspn(buffer, "\n")] = '\0'; // Remove newline character
