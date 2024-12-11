@@ -30,7 +30,7 @@ void func(int sockfd)
         read(sockfd, buff, sizeof(buff));
         // printf("\n%s\n", buff);
         if ((strncmp(buff, "exit", 4)) == 0) {
-            printf("Client Exit...\n");
+            printf("\033[1;31mClient Exit...\033[0m\n");
             break;
         } else if (strncmp(buff, "login", 5) == 0) { // If server asks for login, prompt user for credentials
             printf("Enter username: ");
@@ -47,9 +47,9 @@ void func(int sockfd)
             read(sockfd, buff, sizeof(buff)); // Read server's response to login attempt
             printf("%s\n\n", buff); // Print the server's response (success or failure)
 
-            if (strncmp(buff, "You have successfully logged in!", sizeof(buff)) == 0) {
-                printf("Team D's Library Main Menu:\n");
-                printf("----------------------------------------------------------\n");
+            if (strncmp(buff, "\033[1;32mYou have successfully logged in!\033[0m", sizeof(buff)) == 0) {
+                printf("\033[0;33mTeam D's Library Main Menu:\033[0m\n");
+                printf("\033[0;33m----------------------------------------------------------\033[0m\n");
                 for (;;) {
                     printf("\nPlease choose an option:\n1. Review Account Information\n2. View Books\n3. Rent Book\n4. Return Book\n5. Exit\nOption: ");
                     bzero(buff, sizeof(buff));
@@ -60,7 +60,7 @@ void func(int sockfd)
                     write(sockfd, buff, sizeof(buff));
 
                     if (strncmp(buff, "5", 1) == 0) {
-                        printf("Client Exit...\n");
+                        printf("\033[1;31mClient Exit...\033[0m\n");
                         break;
                     } else if (strncmp(buff, "1", 1) == 0) {
                         char buffer2[1020];
@@ -143,14 +143,14 @@ int main()
     // connect the client socket to server socket
     if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr))
         != 0) {
-        printf("connection with the server failed...\n");
+        printf("\033[1;31mconnection with the server failed...\033[0m\n");
         exit(0);
     }
     else{
-        printf("You have successfully connected to the Library Server!\n");
-        printf("----------------------------------------------------------\n");
-        printf("Welcome to Team D's Library Database!\n");
-        printf("----------------------------------------------------------\n");
+        printf("\033[1;32mYou have successfully connected to the Library Server!\033[0m\n");
+        printf("\033[0;33m----------------------------------------------------------\033[0m\n");
+        printf("\033[0;33mWelcome to Team D's Library Database!\033[0m\n");
+        printf("\033[0;33m----------------------------------------------------------\033[0m\n");
     }
 
     // function for chat
