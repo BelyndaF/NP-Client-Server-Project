@@ -63,7 +63,7 @@ void func(int connfd)
             bool res = login(username, password);
             close_db();
             if (res){
-                write(connfd, "You have successfully logged in!", sizeof(buff));
+                write(connfd, "\033[1;32mYou have successfully logged in!\033[0m", sizeof(buff));
                 for (;;) {
                     bzero(buff, MAX); 
   
@@ -88,12 +88,12 @@ void func(int connfd)
                         break;
                     }
                 }
-                write(connfd, "exit", 4); 
-                printf("Server Exit...\n");
+                write(connfd, "\033[1;31mexit\033[0m", 4); 
+                printf("\033[1;31mServer Exit...\033[0m\n");
                 break;
             }
             else{
-                write(connfd, "Login failed. Check credentials", sizeof(buff));
+                write(connfd, "\033[1;31mLogin failed. Check credentials\033[0m", sizeof(buff));
             }
             
         } else if (strncmp(buff, "2", 1) == 0) {
@@ -125,9 +125,9 @@ void func(int connfd)
             bool res = create_account(username, password);
             close_db();
             if (res){
-                write(connfd, "Account created successfully!", sizeof(buff));
+                write(connfd, "\033[1;32mAccount created successfully!\033[0m", sizeof(buff));
             } else {
-                write(connfd, "Account creation failed. Check username", sizeof(buff));
+                write(connfd, "\033[1;31mAccount creation failed. Check username\033[0m", sizeof(buff));
             }
             
         } else if (strncmp(buff, "3", 1) == 0) {
@@ -137,7 +137,7 @@ void func(int connfd)
             break;
         } else {
             // Handle invalid input
-            write(connfd, "Invalid option. Please try again.", sizeof(buff));
+            write(connfd, "\033[1;31mInvalid option. Please try again.\033[0m", sizeof(buff));
         }
     } 
 } 
@@ -145,7 +145,7 @@ void func(int connfd)
 // Driver function 
 int main() 
 { 
-        // initialize database
+    // initialize database
     init_db();
     close_db();
     initialize_books();
@@ -157,11 +157,11 @@ int main()
     // socket create and verification 
     sockfd = socket(AF_INET, SOCK_STREAM, 0); 
     if (sockfd == -1) { 
-        printf("socket creation failed...\n"); 
+        printf("\033[1;31msocket creation failed...\033[0m\n"); 
         exit(0); 
     } 
     else
-        printf("Socket successfully created..\n"); 
+        printf("\033[1;32mSocket successfully created..\033[0m\n"); 
     bzero(&servaddr, sizeof(servaddr)); 
   
     // assign IP, PORT 
@@ -171,34 +171,39 @@ int main()
   
     // Binding newly created socket to given IP and verification 
     if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) { 
-        printf("socket bind failed...\n"); 
+        printf("\033[1;31msocket bind failed...\033[0m\n"); 
         exit(0); 
     } 
     else
-        printf("Socket successfully binded..\n"); 
+        printf("\033[1;32mSocket successfully binded..\033[0m\n"); 
   
     // Now server is ready to listen and verification 
     if ((listen(sockfd, 5)) != 0) { 
-        printf("Listen failed...\n"); 
+        printf("\033[1;31mListen failed...\033[0m\n"); 
         exit(0); 
     } 
     else
-        printf("Server listening..\n"); 
+        printf("\033[1;32mServer listening..\033[0m\n"); 
     len = sizeof(cli); 
-  
+    
+    // Start While Loop to allow fork process
     // Accept the data packet from client and verification 
-    connfd = accept(sockfd, (SA*)&cli, &len); 
-    if (connfd < 0) { 
-        printf("server accept failed...\n"); 
-        exit(0); 
-    } 
-    else
-        printf("server accept the client...\n"); 
-  
-    // Function for chatting between client and server 
-    func(connfd); 
-  
-    // After chatting close the socket 
+    while(1) {
+       connfd = accept(sockfd, (SA*)&cli, &len); 
+        if (connfd < 0) { 
+            printf("\033[1;31mserver accept failed...\033[0m\n"); 
+            exit(0); 
+        } 
+        else
+            printf("\033[1;32mserver accept the client...\033[0m\n");  
+        if (fork() == 0) {
+            close(sockfd);
+            func(connfd);
+            close(connfd);
+            exit(0);
+        }
+        close(connfd);
+    }
     close(sockfd); 
 }
 
@@ -210,7 +215,7 @@ void close_db() {
   if (db != NULL) {
     sqlite3_close(db);
     db = NULL;
-    printf("Database connection closed.\n");
+    printf("\033[1;31mDatabase connection closed.\033[0m\n");
   }
 }
 
@@ -218,10 +223,10 @@ void close_db() {
 void init_db() {
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "\033[1;31mCan't open database: %s\033[0m\n", sqlite3_errmsg(db));
     exit(0);
   } else {
-    printf("Opened database successfully. Init DB\n");
+    printf("\033[1;32mOpened database successfully. Init DB\033[0m\n");
   }
 
   // Create users table
@@ -254,10 +259,10 @@ void init_db() {
 void initialize_books() {
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "\033[1;31mCan't open database: %s\033[0m\n", sqlite3_errmsg(db));
     exit(0);
   } else {
-    printf("Opened database successfully. Initialize books\n");
+    printf("\033[1;32mOpened database successfully. Initialize books\033[0m\n");
   }
   sqlite3_stmt *stmt;
   const char *check_sql = "SELECT COUNT(*) FROM books;";
@@ -282,7 +287,7 @@ void initialize_books() {
         "(10, 'Computer Graphics', 'Donald Hearn', 2, 3);";
 
     sqlite3_exec(db, insert_sql, 0, 0, 0);
-    printf("Books added to the database.\n");
+    printf("\033[1;32mBooks added to the database.\033[0m\n");
   }
 }
 
@@ -290,10 +295,10 @@ void initialize_books() {
 bool create_account(char username[], char password[]) {
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "\033[1;31mCan't open database: %s\033[0m\n", sqlite3_errmsg(db));
     exit(0);
   } else {
-    printf("Database opened successfully\n");
+    printf("\033[1;32mDatabase opened successfully\033[0m\n");
   }
 
   // Check if username already exists
@@ -317,12 +322,12 @@ bool create_account(char username[], char password[]) {
     printf("Debug: User count from query: %d\n", user_count);
 
     if (user_count > 0) {
-      printf("Username already exists. Please try another one.\n");
+      printf("\033[1;31mUsername already exists. Please try another one.\033[0m\n");
       sqlite3_finalize(stmt);
       return false;
     }
   } else {
-    printf("Error: sqlite3_step failed with error code: %d\n", rc);
+    printf("\033[1;31mError: sqlite3_step failed with error code: %d\033[0m\n", rc);
   }
   sqlite3_finalize(stmt);
 
@@ -335,10 +340,10 @@ bool create_account(char username[], char password[]) {
 
   rc = sqlite3_exec(db, sql, 0, 0, 0);
   if (rc != SQLITE_OK) {
-    printf("Error: sqlite3_exec failed with error: %s\n", sqlite3_errmsg(db));
+    printf("\033[1;31mError: sqlite3_exec failed with error: %s\033[0m\n", sqlite3_errmsg(db));
     return false;
   } else {
-    printf("Debug: Account created successfully for user: %s\n", username);
+    printf("\033[1;32mDebug: Account created successfully for user: %s\033[0m\n", username);
     return true;
   }
 }
@@ -347,10 +352,10 @@ bool create_account(char username[], char password[]) {
 bool login(char username[], char password[]) {
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "\033[1;31mCan't open database: %s\033[0m\n", sqlite3_errmsg(db));
     exit(0);
   } else {
-    printf("Database opened successfully, login\n");
+    printf("\033[1;32mDatabase opened successfully, login\033[0m\n");
   }
 
   sqlite3_stmt *stmt;
@@ -362,7 +367,7 @@ bool login(char username[], char password[]) {
   rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
 
   if (rc != SQLITE_OK) {
-    printf("Login failed: error retrieving user information\n");
+    printf("\033[1;31mLogin failed: error retrieving user information\033[0m\n");
     return false;
   }
 
@@ -375,10 +380,10 @@ bool login(char username[], char password[]) {
       sqlite3_finalize(stmt);
       return true;
     } else {
-      printf("Login failed: incorrect password\n");
+      printf("\033[1;31mLogin failed: incorrect password\033[0m\n");
     }
   } else {
-    printf("Login failed: username not found\n");
+    printf("\033[1;31mLogin failed: username not found\033[0m\n");
   }
 
   sqlite3_finalize(stmt);
@@ -396,7 +401,7 @@ void display_account_info(int connfd, char name[]) {
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
     exit(0);
   } else {
-    printf("Database opened successfully, login\n");
+    printf("\033[1;32mDatabase opened successfully, login\033[0m\n");
   }
 
   sqlite3_stmt *stmt;
@@ -422,12 +427,12 @@ void display_account_info(int connfd, char name[]) {
 
     // Send user info to client
     snprintf(result, sizeof(result),
-             "User Account Information:\nName: %s\n", username);
+             "\033[1;32mUser Account Information:\nName: %s\033[0m\n", username);
 
     sqlite3_finalize(stmt);
 
     // Query for rented books using user_id
-    printf("User ID: %d\n", user_id);
+    printf("\033[1;32mUser ID: %d\033[0m\n", user_id);
     snprintf(buffer, sizeof(buffer),
              "SELECT b.id, b.name, b.author, rb.return_date FROM rented_books rb "
              "JOIN books b ON rb.book_id = b.id WHERE rb.user_id = %d;",
@@ -446,8 +451,8 @@ void display_account_info(int connfd, char name[]) {
 
     if (sqlite3_step(stmt) == SQLITE_ROW) {
       // If rented books are found
-      strcat(result, "Rented Books:\n");
-      strcat(result, " Book ID   Name                            Author                Renting Time \n");
+      strcat(result, "\033[1;32mRented Books:\033[0m\n");
+      strcat(result, "\033[1;32m Book ID   Name                            Author                Renting Time \033[0m\n");
       do {
         const char *book_id = (const char *)sqlite3_column_text(stmt, 0);
         const char *book_name = (const char *)sqlite3_column_text(stmt, 1);
@@ -479,33 +484,34 @@ void display_account_info(int connfd, char name[]) {
         //          "Book ID: %s\t Name: %s\t Author: %s\t Renting Time: %s \n", book_id, book_name,
         //          author, renting_time_str);
         snprintf(book_info, sizeof(book_info),
-         " %-8s  %-30s  %-20s  %-12s \n", book_id, book_name, author, renting_time_str);
+         "\033[1;32m %-8s  %-30s  %-20s  %-12s \033[0m\n", book_id, book_name, author, renting_time_str);
 
         strcat(result, book_info);
       } while (sqlite3_step(stmt) == SQLITE_ROW);
     } else {
       // No rented books found
-      strcat(result, "No rented books.\n");
+      strcat(result, "\033[1;31mNo rented books.\033[0m\n");
     }
     // printf("%s", result);
     write(connfd, result, sizeof(result));
   } else {
     // Error retrieving account information
-    write(connfd, "An error occurred getting account information", sizeof(buff));
+    write(connfd, "\033[1;31mAn error occurred getting account information\033[0m]", sizeof(buff));
   }
 
   sqlite3_finalize(stmt);
   sqlite3_close(db); // Close the database connection
 }
 
+
 // function to get user id based on name
 int get_user_id(char name[]) {
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "\033[1;31mCan't open database: %s\033[0m\n", sqlite3_errmsg(db));
     exit(0);
   } else {
-    printf("Database opened successfully. Get user id.\n");
+    printf("\033[1;32mDatabase opened successfully. Get user id.\033[0m\n");
   }
   sqlite3_stmt *stmt;
   const char *sql =
@@ -515,13 +521,13 @@ int get_user_id(char name[]) {
 
   // Prepare the SQL statement
   if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) {
-    printf("Failed to prepare statement: %s\n", sqlite3_errmsg(db));
+    printf("\033[1;31mFailed to prepare statement: %s\033[0m\n", sqlite3_errmsg(db));
     return user_id;
   }
 
   // Bind the name parameter to the SQL query
   if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK) {
-    printf("Failed to bind name: %s\n", sqlite3_errmsg(db));
+    printf("\033[1;31mFailed to bind name: %s\033[0m\n", sqlite3_errmsg(db));
     sqlite3_finalize(stmt);
     return user_id;
   }
@@ -531,7 +537,7 @@ int get_user_id(char name[]) {
     // Retrieve the user ID from the result set
     user_id = sqlite3_column_int(stmt, 0); // 0 is the column index for "id"
   } else {
-    printf("User not found.\n");
+    printf("\033[1;31User not found.\033[0m\n");
   }
 
   // Finalize the statement to free resources
@@ -546,10 +552,10 @@ void find_books(int connfd) {
     char result[2048]; 
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "\033[1;31mCan't open database: %s\033[0m\n", sqlite3_errmsg(db));
     exit(0);
   } else {
-    printf("Database opened successfully. Find Book\n");
+    printf("\033[1;32mDatabase opened successfully. Find Book\033[0m\n");
   }
   char buffer[2048] = {0};
   sqlite3_stmt *stmt;
@@ -560,15 +566,15 @@ void find_books(int connfd) {
   rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
 
   if (rc != SQLITE_OK) {
-     write(connfd, "Error retrieving books from the database.", sizeof(buff));
+     write(connfd, "\033[1;31mError retrieving books from the database.\033[0m", sizeof(buff));
     return;
   }
 
   bzero(result, sizeof(result));
   // Check if there are any books available
   if (sqlite3_step(stmt) == SQLITE_ROW) {
-    strcat(result, "Available Books:\n");
-    strcat(result, " ID      Name                            Author                Time Limit  Availability \n");
+    strcat(result, "\033[1;32mAvailable Books:\033[0m\n");
+    strcat(result, "\033[1;32m ID      Name                            Author                Time Limit  Availability \033[0m\n");
 
     // Loop through each row in the result set
     do {
@@ -587,7 +593,7 @@ void find_books(int connfd) {
       //     id, name, author, return_date, availability);
           snprintf(
             book_info, sizeof(book_info),
-            " %-6d  %-30s  %-20s  %-10s  %-12d \n",
+            "\033[1;32m %-6d  %-30s  %-20s  %-10s  %-12d \033[0m\n",
             id, name, author, res, availability);
 
       strcat(result, book_info);
@@ -596,7 +602,7 @@ void find_books(int connfd) {
     // printf("%s", result);
     write(connfd, result, sizeof(result));
   } else {
-    write(connfd, "No books available in the bookstore.", sizeof(buff));
+    write(connfd, "\033[1;31mNo books available in the bookstore.\033[0m", sizeof(buff));
   }
 
   sqlite3_finalize(stmt);
@@ -608,7 +614,7 @@ void rent_book(int connfd, int user_id) {
     char buff[MAX];
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "\033[1;31mCan't open database: %s\033[0m\n", sqlite3_errmsg(db));
     return;
   }
 
@@ -628,7 +634,7 @@ void rent_book(int connfd, int user_id) {
     rc = sqlite3_prepare_v2(db, buffer, -1, &stmt, 0);
 
     if (rc != SQLITE_OK) {
-        write(connfd, "Error renting book.", sizeof(buff));
+        write(connfd, "\033[1;31mError renting book.\033[0m", sizeof(buff));
         sqlite3_finalize(stmt);
         return;
     }
@@ -639,8 +645,8 @@ void rent_book(int connfd, int user_id) {
         time_limit_weeks = sqlite3_column_int(stmt, 0);
         printf("Time limit (weeks) for the book: %d\n", time_limit_weeks);
     } else {
-        printf("Error: Book not found or invalid book ID.\n");
-        write(connfd, "Book not found or invalid book ID.", sizeof(buff));
+        printf("\033[1;31mError: Book not found or invalid book ID.\033[0m\n");
+        write(connfd, "\033[1;31mBook not found or invalid book ID.\033[0m", sizeof(buff));
         sqlite3_finalize(stmt);
         return;
     }
@@ -672,12 +678,12 @@ void rent_book(int connfd, int user_id) {
 
     bzero(buff, sizeof(buff));
   if (rc != SQLITE_OK) {
-    write(connfd, "Error renting book.", sizeof(buff));
+    write(connfd, "\033[1;31mError renting book.\033[0m", sizeof(buff));
     const char *err_msg = sqlite3_errmsg(db);
     printf("Debug: Error message: %s\n", err_msg);
   } else {
-     printf("Book rented successfully! %s\n");
-    write(connfd, "Book rented successfully!", sizeof(buff));
+     printf("\033[1;32mBook rented successfully! %s\033[0m\n");
+    write(connfd, "\033[1;32mBook rented successfully!\033[0m", sizeof(buff));
   }
 }
 
@@ -686,7 +692,7 @@ void return_book(int connfd, int user_id) {
     char buff[MAX];
   int rc = sqlite3_open("bookstore.db", &db);
   if (rc) {
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    fprintf(stderr, "\033[1;31mCan't open database: %s\033[0m\n", sqlite3_errmsg(db));
     return;
   }
 
@@ -698,25 +704,22 @@ void return_book(int connfd, int user_id) {
     bzero(buff, sizeof(buff));
     read(connfd, buff, sizeof(buff));
     sscanf(buff, "%d", &book_id);
-    printf("Book ID: %d\n", book_id);
+    printf("Please select the Book ID of the book you would like to return: %d\n", book_id);
 
-  // Update availability in books table
-  snprintf(buffer, sizeof(buffer),
-           "UPDATE books SET availability = availability + 1 WHERE id = %d;",
-           book_id);
-  rc = sqlite3_exec(db, buffer, 0, 0, 0);
+  snprintf(buffer, sizeof(buffer), "SELECT * FROM rented_books WHERE user_id = %d AND book_id = %d;", user_id, book_id);
+    rc = sqlite3_prepare_v2(db, buffer, -1, &stmt, 0);
 
-  // Remove the book from rented_books table
-  snprintf(buffer, sizeof(buffer),
-           "DELETE FROM rented_books WHERE user_id = %d AND book_id = %d;",
-           user_id, book_id);
-  rc = sqlite3_exec(db, buffer, 0, 0, 0);
-
-  if (rc != SQLITE_OK) {
-    printf("Error returning book.\n");
-    write(connfd, "Error returning book.", sizeof(buff));
-  } else {
-    printf("Book returned successfully!\n");
-    write(connfd, "Book returned successfully!", sizeof(buff));
-  }
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        sqlite3_finalize(stmt);
+        snprintf(buffer, sizeof(buffer), "DELETE FROM rented_books WHERE user_id = %d AND book_id = %d;", user_id, book_id);
+        rc = sqlite3_exec(db, buffer, 0, 0, 0);
+        snprintf(buffer, sizeof(buffer), "UPDATE books SET availability = availability + 1 WHERE id = %d;", book_id);
+        rc = sqlite3_exec(db, buffer, 0, 0, 0);
+        write(connfd, "\033[1;32mBook returned successfully!\033[0m", sizeof(buff));
+    } else {
+        write(connfd, "\033[1;31mYou did not rent this book!\033[0m", sizeof(buff));
+        sqlite3_finalize(stmt);
+    }
 }
+
+
